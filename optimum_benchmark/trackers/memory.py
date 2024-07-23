@@ -224,8 +224,12 @@ def monitor_cpu_ram_memory(monitored_pid: int, connection: Connection, interval:
         max_used_memory = max(max_used_memory, used_memory)
         stop = connection.poll(interval)
 
-    connection.send(max_used_memory / 1e6)  # convert to MB
-    connection.close()
+    try:
+        connection.send(max_used_memory / 1e6)  # convert to MB
+    except Exception as e:
+        LOGGER.warning(f"Could not send memory stats: {e}")
+    finally:
+        connection.close()
 
 
 def monitor_gpu_vram_memory(monitored_pid: int, device_ids: List[int], connection: Connection, interval: float = 0.01):
@@ -331,6 +335,10 @@ def monitor_gpu_vram_memory(monitored_pid: int, device_ids: List[int], connectio
     else:
         raise ValueError("Only NVIDIA and AMD ROCm GPUs are supported for VRAM tracking.")
 
-    connection.send(max_used_global_memory / 1e6)  # convert to MB
-    connection.send(max_used_process_memory / 1e6)  # convert to MB
-    connection.close()
+    try:
+        connection.send(max_used_global_memory / 1e6)  # convert to MB
+        connection.send(max_used_process_memory / 1e6)  # convert to MB
+    except Exception as e:
+        LOGGER.warning(f"Could not send memory stats: {e}")
+    finally:
+        connection.close()

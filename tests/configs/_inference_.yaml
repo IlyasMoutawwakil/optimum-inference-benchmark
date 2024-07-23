@@ -11,6 +11,7 @@ scenario:
 
   input_shapes:
     batch_size: 1
+    sequence_length: 2
 
   generate_kwargs:
     max_new_tokens: 5
