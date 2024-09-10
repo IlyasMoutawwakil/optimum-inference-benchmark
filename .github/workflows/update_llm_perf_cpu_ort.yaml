@@ -1,0 +1,54 @@
+name: Update LLM Perf Benchmarks - Intel PyTorch
+
+on:
+  workflow_dispatch:
+  push:
+  schedule:
+    - cron: "0 0 * * *"
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+  IMAGE: ghcr.io/huggingface/optimum-benchmark:latest-cpu
+
+jobs:
+  run_benchmarks:
+    strategy:
+      fail-fast: false
+      matrix:
+        subset: [unquantized]
+        machine: [
+          {name: 32vCPU-C7i, runs-on: {group: 'aws-c7i-8xlarge-plus'}}, 
+        ]
+
+    runs-on: ${{ matrix.machine.runs-on }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run benchmarks
+        uses: addnab/docker-run-action@v3
+        env:
+          SUBSET: ${{ matrix.subset }}
+          MACHINE: ${{ matrix.machine.name }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        with:
+          image: ${{ env.IMAGE }}
+          options: |
+            --rm
+            --shm-size 64G
+            --env SUBSET
+            --env MACHINE
+            --env HF_TOKEN
+            --env MKL_THREADING_LAYER=GNU
+            --env HF_HUB_ENABLE_HF_TRANSFER=1
+            --volume ${{ github.workspace }}:/workspace
+            --workdir /workspace
+          run: |
+            pip install packaging && pip install einops scipy optimum codecarbon
+            pip install -U transformers huggingface_hub[hf_transfer]
+            pip install -e .[onnxruntime]
+            python llm_perf/update_llm_perf_cpu_pytorch.py
