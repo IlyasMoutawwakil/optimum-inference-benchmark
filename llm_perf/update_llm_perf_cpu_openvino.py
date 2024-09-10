@@ -17,21 +17,21 @@ from optimum_benchmark import (
     BenchmarkReport,
     InferenceConfig,
     ProcessConfig,
-    PyTorchConfig,
+    OVConfig
 )
 from optimum_benchmark.logging_utils import setup_logging
 
 SUBSET = os.getenv("SUBSET", None)
 MACHINE = os.getenv("MACHINE", None)
-BACKEND = "pytorch"
-HARDWARE = "intel"
+BACKEND = "openvino"
+HARDWARE = "cpu"
 
 if os.getenv("MACHINE", None) is None and os.getenv("SUBSET", None) is None:
-    PUSH_REPO_ID = f"optimum-benchmark/llm-perf-{BACKEND}-intel-debug"
+    PUSH_REPO_ID = f"optimum-benchmark/llm-perf-{BACKEND}-{HARDWARE}-debug"
     CANONICAL_PRETRAINED_OPEN_LLM_LIST = ["gpt2"]
     SUBSET = "unquantized"
 elif os.getenv("MACHINE", None) is not None and os.getenv("SUBSET", None) is not None:
-    PUSH_REPO_ID = f"optimum-benchmark/llm-perf-{BACKEND}-intel-{SUBSET}-{MACHINE}"
+    PUSH_REPO_ID = f"optimum-benchmark/llm-perf-{BACKEND}-{HARDWARE}-{SUBSET}-{MACHINE}"
 else:
     raise ValueError("Either both MACHINE and SUBSET should be set for benchmarking or neither for debugging")
 
@@ -62,7 +62,7 @@ def is_benchmark_supported(weights_config, attn_implementation, hardware):
     return True
 
 
-def benchmark_intel(model, attn_implementation, weights_config):
+def benchmark_openvino(model, attn_implementation, weights_config):
     benchmark_name = f"{weights_config}-{attn_implementation}-{BACKEND}"
     subfolder = f"{benchmark_name}/{model.replace('/', '--')}"
 
@@ -90,16 +90,14 @@ def benchmark_intel(model, attn_implementation, weights_config):
         generate_kwargs=GENERATE_KWARGS,
     )
 
-    backend_config = PyTorchConfig(
+    backend_config = OVConfig(
         model=model,
         device="cpu",
+        device_ids="0",
         no_weights=True,
         library="transformers",
         task="text-generation",
-        torch_dtype=torch_dtype,
-        quantization_scheme=quant_scheme,
         quantization_config=quant_config,
-        attn_implementation=attn_implementation,
         model_kwargs={"trust_remote_code": True},
     )
 
@@ -144,4 +142,4 @@ if __name__ == "__main__":
     )
 
     for model, attn_implementation, weights_config in models_attentions_weights:
-        benchmark_intel(model, attn_implementation, weights_config)
+        benchmark_openvino(model, attn_implementation, weights_config)
