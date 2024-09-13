@@ -1,0 +1,25 @@
+defaults:
+  - benchmark
+  - backend: onnxruntime
+  - scenario: inference
+  - launcher: process
+  - _base_
+  - _self_
+
+name: onnxruntime_diffusion
+
+backend:
+  device: cpu
+  export: true
+  model: hf-internal-testing/tiny-stable-diffusion-torch
+
+scenario:
+  memory: true
+  latency: true
+
+  input_shapes:
+    batch_size: 1
+
+  warmup_runs: 10
+  iterations: 10
+  duration: 10
