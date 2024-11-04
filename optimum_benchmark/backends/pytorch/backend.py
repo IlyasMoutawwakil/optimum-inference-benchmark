@@ -183,12 +183,14 @@ class PyTorchBackend(Backend[PyTorchConfig]):
         # Torch compile
         if self.config.torch_compile:
             if self.config.torch_compile_target == "forward":
-                self.logger.info("\t+ Using torch.compile on forward")
+                self.logger.info("\t+ Using torch.compile on forward updated")
+                self.pretrained_model = zentorch.llm.optimize(self.pretrained_model, self.config.torch_dtype)
                 self.pretrained_model.forward = torch.compile(
                     self.pretrained_model.forward, **self.config.torch_compile_config
                 )
             elif self.config.torch_compile_target == "model":
-                self.logger.info("\t+ Using torch.compile on model")
+                self.logger.info("\t+ Using torch.compile on model updated")
+                self.pretrained_model = zentorch.llm.optimize(self.pretrained_model, self.config.torch_dtype)
                 self.pretrained_model = torch.compile(self.pretrained_model, **self.config.torch_compile_config)
             else:
                 raise ValueError(f"Target {self.config.torch_compile_target} not supported")
